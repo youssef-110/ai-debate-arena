@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Debate Arena — Two minds enter. One argument survives.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500;1,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Ambient particle background -->
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+
+  <!-- ======================= SETUP SCREEN ======================= -->
+  <section id="screen-setup" class="screen active">
+    <div class="setup-wrap">
+      <header class="brand">
+        <h1 class="logo">DEBATE <span class="logo-accent">ARENA</span></h1>
+        <p class="tagline">Two minds enter. One argument survives.</p>
+      </header>
+
+      <div id="key-banner" class="key-banner hidden">
+        No API keys detected — copy <code>.env.example</code> to <code>.env</code> and add your free keys.
+      </div>
+
+      <div class="setup-card">
+        <!-- Topic -->
+        <div class="field-group">
+          <label class="field-label" for="topic-input">The Motion</label>
+          <div class="topic-row">
+            <input id="topic-input" type="text" maxlength="160" placeholder="Enter a controversial topic…" autocomplete="off" />
+            <button id="btn-random-topic" class="btn btn-ghost" type="button" title="Random topic (R)">
+              🎲 Random <kbd>R</kbd>
+            </button>
+          </div>
+        </div>
+
+        <!-- Debaters -->
+        <div class="debaters-grid">
+          <div class="debater-config blue">
+            <div class="config-side-badge">FOR</div>
+            <label class="field-label" for="name-1">Debater One · Blue Corner</label>
+            <input id="name-1" type="text" maxlength="24" value="AXIOM" autocomplete="off" />
+            <label class="field-label" for="provider-1">Provider</label>
+            <select id="provider-1">
+              <option value="groq">Groq</option>
+              <option value="gemini">Gemini</option>
+            </select>
+            <label class="field-label" for="model-1">Model</label>
+            <input id="model-1" class="model-field" type="text" readonly value="llama-3.3-70b-versatile" tabindex="-1" />
+          </div>
+
+          <div class="vs-setup" aria-hidden="true">VS</div>
+
+          <div class="debater-config red">
+            <div class="config-side-badge">AGAINST</div>
+            <label class="field-label" for="name-2">Debater Two · Red Corner</label>
+            <input id="name-2" type="text" maxlength="24" value="VESPER" autocomplete="off" />
+            <label class="field-label" for="provider-2">Provider</label>
+            <select id="provider-2">
+              <option value="groq">Groq</option>
+              <option value="gemini" selected>Gemini</option>
+            </select>
+            <label class="field-label" for="model-2">Model</label>
+            <input id="model-2" class="model-field" type="text" readonly value="gemini-2.5-flash" tabindex="-1" />
+          </div>
+        </div>
+
+        <!-- Judge -->
+        <div class="field-group">
+          <span class="field-label">The Judge</span>
+          <div class="judge-row">
+            <label class="radio-card">
+              <input type="radio" name="judge-type" value="ai" checked />
+              <span class="radio-card-body">
+                <strong>⚖ AI Judge</strong>
+                <small>A third AI analyzes the full debate and rules with round-by-round scores.</small>
+              </span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="judge-type" value="user" />
+              <span class="radio-card-body">
+                <strong>👑 You Judge</strong>
+                <small>Vote after every round. Majority of rounds takes the crown.</small>
+              </span>
+            </label>
+          </div>
+          <div id="judge-provider-wrap" class="judge-provider-wrap">
+            <label class="field-label" for="judge-provider">Judge Provider</label>
+            <select id="judge-provider">
+              <option value="groq">Groq · llama-3.3-70b-versatile</option>
+              <option value="gemini">Gemini · gemini-2.5-flash</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Options -->
+        <div class="options-row">
+          <label class="toggle">
+            <input id="opt-auto" type="checkbox" checked />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span class="toggle-label">Auto-advance rounds</span>
+          </label>
+          <div class="speed-wrap">
+            <span class="toggle-label">Reading speed</span>
+            <input id="opt-speed" type="range" min="1" max="10" step="1" value="5" />
+            <span id="speed-value" class="mono">5</span>
+          </div>
+        </div>
+
+        <button id="btn-start" class="btn btn-primary" type="button">⚔ &nbsp;ENTER THE ARENA</button>
+        <p class="hint-line"><kbd>Space</kbd> continue &nbsp;·&nbsp; <kbd>R</kbd> random topic &nbsp;·&nbsp; <kbd>Esc</kbd> settings</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= ARENA SCREEN ======================= -->
+  <section id="screen-arena" class="screen">
+    <header class="arena-header">
+      <div class="arena-topic">
+        <span class="arena-topic-label">THE MOTION</span>
+        <h2 id="arena-topic-text" class="arena-topic-text"></h2>
+      </div>
+      <div class="arena-meta">
+        <div id="round-indicator" class="round-indicator mono">ROUND 1 / 5</div>
+        <div class="arena-controls">
+          <label class="toggle small" title="Auto-advance rounds">
+            <input id="arena-auto" type="checkbox" checked />
+            <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            <span class="toggle-label">Auto</span>
+          </label>
+          <input id="arena-speed" type="range" min="1" max="10" step="1" value="5" title="Reading speed" />
+          <button id="btn-concede" class="btn btn-danger btn-small" type="button">🏳 Concede</button>
+          <button id="btn-exit" class="btn btn-ghost btn-small" type="button" title="Back to settings (Esc)">✕</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="arena">
+      <div id="panel-for" class="debater-panel blue">
+        <div class="panel-header">
+          <div>
+            <h3 id="arena-name-1" class="panel-name"></h3>
+            <span id="arena-model-1" class="panel-model mono"></span>
+          </div>
+          <span class="side-chip">FOR</span>
+        </div>
+        <div id="feed-for" class="feed"></div>
+      </div>
+
+      <div id="vs-divider" class="vs-divider" aria-hidden="true">
+        <span class="vs-text">VS</span>
+      </div>
+
+      <div id="panel-against" class="debater-panel red">
+        <div class="panel-header">
+          <div>
+            <h3 id="arena-name-2" class="panel-name"></h3>
+            <span id="arena-model-2" class="panel-model mono"></span>
+          </div>
+          <span class="side-chip">AGAINST</span>
+        </div>
+        <div id="feed-against" class="feed"></div>
+      </div>
+    </main>
+
+    <footer class="arena-footer">
+      <div id="status-line" class="status-line"></div>
+
+      <div id="vote-bar" class="vote-bar hidden">
+        <span class="vote-question">WHO TOOK THIS ROUND?</span>
+        <div class="vote-buttons">
+          <button id="btn-vote-for" class="btn btn-vote blue" type="button"></button>
+          <button id="btn-vote-against" class="btn btn-vote red" type="button"></button>
+        </div>
+        <div id="vote-tally" class="vote-tally mono"></div>
+      </div>
+
+      <button id="btn-continue" class="btn btn-primary btn-continue hidden" type="button">
+        CONTINUE &nbsp;<kbd>Space</kbd>
+      </button>
+    </footer>
+  </section>
+
+  <!-- Round transition overlay -->
+  <div id="round-transition" class="overlay hidden" aria-hidden="true">
+    <div class="round-transition-inner">
+      <div id="rt-number" class="rt-number mono"></div>
+      <div id="rt-title" class="rt-title"></div>
+      <div class="rt-line"></div>
+    </div>
+  </div>
+
+  <!-- Concede overlay -->
+  <div id="concede-overlay" class="overlay hidden">
+    <div class="modal">
+      <h3 class="modal-title">Who throws in the towel?</h3>
+      <div class="modal-buttons">
+        <button id="btn-concede-for" class="btn btn-vote blue" type="button"></button>
+        <button id="btn-concede-against" class="btn btn-vote red" type="button"></button>
+      </div>
+      <button id="btn-concede-cancel" class="btn btn-ghost btn-small" type="button">Nobody. Fight on.</button>
+    </div>
+  </div>
+
+  <!-- ======================= VERDICT SCREEN ======================= -->
+  <section id="screen-verdict" class="screen">
+    <canvas id="verdict-canvas" aria-hidden="true"></canvas>
+    <div class="verdict-wrap">
+      <div class="verdict-eyebrow">THE VERDICT IS IN</div>
+      <h2 id="verdict-winner" class="verdict-winner"></h2>
+      <div id="verdict-method" class="verdict-method mono"></div>
+      <p id="verdict-sentence" class="verdict-sentence"></p>
+
+      <div id="verdict-scores" class="verdict-scores"></div>
+
+      <div id="verdict-best" class="verdict-best hidden">
+        <div class="verdict-best-label">★ BEST ARGUMENT OF THE NIGHT</div>
+        <blockquote id="verdict-best-quote"></blockquote>
+        <cite id="verdict-best-attr" class="mono"></cite>
+      </div>
+
+      <p id="verdict-reasoning" class="verdict-reasoning"></p>
+
+      <div class="verdict-actions">
+        <button id="btn-rematch" class="btn btn-primary" type="button">⚔ REMATCH</button>
+        <button id="btn-new-debate" class="btn btn-ghost" type="button">NEW DEBATE</button>
+      </div>
+    </div>
+  </section>
+
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/debate.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
