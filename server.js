@@ -22,12 +22,21 @@ const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_MAX = Number(process.env.RATE_LIMIT_PER_10_MIN) || 60; // a full debate is 11 calls
 const hits = new Map();
 const MAX_TRACKED_IPS = 10000;
+// Backstop across all visitors, per instance: protects the key if many IPs join in.
+const GLOBAL_MAX = Number(process.env.GLOBAL_LIMIT_PER_10_MIN) || 600;
+let globalTimes = [];
+function globalCalls(now) {
+  globalTimes = globalTimes.filter((t) => now - t < RATE_WINDOW_MS);
+  return globalTimes.length;
+}
 
 // On Vercel, x-real-ip is set by the platform to the connecting client and cannot be
 // spoofed by the caller. Elsewhere, only the socket address is trusted.
 function clientIp(req) {
   const ip = (process.env.VERCEL && req.headers['x-real-ip']) || req.socket.remoteAddress || 'unknown';
-  return String(ip).slice(0, 64);
+  const text = String(ip).slice(0, 64);
+  // Group IPv6 by /64, since one client can own a whole /64 block.
+  return text.includes(':') ? text.split(':').slice(0, 4).join(':') : text;
 }
 
 // Drop visitors with no recent calls, and cap the map so it cannot grow without bound.
@@ -41,11 +50,11 @@ function rateLimit(req, res, next) {
   const ip = clientIp(req);
   const now = Date.now();
   const recent = (hits.get(ip) || []).filter((t) => now - t < RATE_WINDOW_MS);
-  if (recent.length >= RATE_MAX) {
+  if (recent.length >= RATE_MAX || (!hits.has(ip) && hits.size >= MAX_TRACKED_IPS) || globalCalls(now) >= GLOBAL_MAX) {
     return res.status(429).json({ error: 'Too many requests. Try again in a few minutes.' });
   }
   recent.push(now);
-  if (!hits.has(ip) && hits.size >= MAX_TRACKED_IPS) hits.delete(hits.keys().next().value);
+  globalTimes.push(now);
   hits.set(ip, recent);
   next();
 }
