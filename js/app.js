@@ -59,7 +59,7 @@
 
   function modelFor(provider) {
     const p = state.config && state.config.providers[provider];
-    return p ? p.model : (provider === 'groq' ? 'llama-3.3-70b-versatile' : 'gemini-2.5-flash');
+    return p ? p.model : (provider === 'groq' ? 'openai/gpt-oss-120b' : 'gemini-2.5-flash');
   }
 
   function syncModels() {

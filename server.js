@@ -22,7 +22,7 @@ app.use(express.static(__dirname));
 const PROVIDERS = {
   groq: {
     label: 'Groq',
-    model: 'llama-3.3-70b-versatile',
+    model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
     envKey: 'GROQ_API_KEY'
   },
   gemini: {
@@ -48,7 +48,10 @@ async function callGroq(system, user, { temperature = 0.9, maxTokens = 500 } = {
     body: JSON.stringify({
       model: PROVIDERS.groq.model,
       temperature,
-      max_tokens: maxTokens,
+      // gpt-oss models reason first, and reasoning tokens count against max_tokens.
+      ...(PROVIDERS.groq.model.startsWith('openai/gpt-oss')
+        ? { reasoning_effort: 'low', max_tokens: maxTokens + 1500 }
+        : { max_tokens: maxTokens }),
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: user }

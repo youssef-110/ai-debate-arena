@@ -12,7 +12,7 @@ Two AIs battle it out in a 5-round live debate on any topic — Groq vs Gemini, 
 
 | Role | Provider | Model |
 |------|----------|-------|
-| Debater | Groq | `llama-3.3-70b-versatile` |
+| Debater | Groq | `openai/gpt-oss-120b` |
 | Debater | Google | `gemini-2.5-flash` |
 
 Both providers have free API tiers.
