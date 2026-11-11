@@ -1,5 +1,7 @@
 # ⚔ AI Debate Arena
 
+**Live site:** https://ai-debate-arena-sable-psi.vercel.app
+
 Two AIs battle it out in a 5-round live debate on any topic — Groq vs Gemini, with an AI judge, round-by-round scoring, and a cinematic arena UI.
 
 ## How it works
